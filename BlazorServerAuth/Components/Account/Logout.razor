@@ -1,0 +1,18 @@
+﻿@* @page "/account/logout"
+@inject SignInManager<IdentityUser> SignIn
+@inject NavigationManager Nav
+
+@attribute [ExcludeFromInteractiveRouting]
+
+<h3>Déconnexion en cours ...</h3>
+
+@code {
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		await SignIn.SignOutAsync();
+		Nav.NavigateTo("/", true);
+	}
+}
+ *@

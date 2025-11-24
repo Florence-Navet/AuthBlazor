@@ -1,0 +1,92 @@
+﻿@page "/account/register"
+@using System.ComponentModel.DataAnnotations
+
+@inject NavigationManager NavigationManager
+@inject UserManager<IdentityUser> UserManager
+
+<PageTitle>Créer un compte</PageTitle>
+
+<h1>Créer un compte</h1>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+	<p class="text-danger">
+		@_error
+	</p>
+}
+
+<div class="row">
+	<div class="col-lg-6">
+		<EditForm Model="Model" method="post" OnValidSubmit="RegisterUser" FormName="register">
+			<DataAnnotationsValidator />
+			<h2>Compte local</h2>
+			<hr />
+			<ValidationSummary class="text-danger" role="alert" />
+			<div class="form-floating mb-3">
+				<InputText @bind-Value="Model.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+				<label for="Input.Email">Email</label>
+				<ValidationMessage For="() => Model.Email" class="text-danger" />
+			</div>
+			<div class="form-floating mb-3">
+				<InputText type="password" @bind-Value="Model.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+				<label for="Input.Password">Mot de pass</label>
+				<ValidationMessage For="() => Model.Password" class="text-danger" />
+			</div>
+			<div class="form-floating mb-3">
+				<InputText type="password" @bind-Value="Model.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+				<label for="Input.ConfirmPassword">Confirmation</label>
+				<ValidationMessage For="() => Model.ConfirmPassword" class="text-danger" />
+			</div>
+			<button type="submit" class="w-100 btn btn-lg btn-primary">S'enregistrer</button>
+		</EditForm>
+	</div>
+</div>
+
+@code {
+	private string? _error;
+
+	[SupplyParameterFromForm]
+	private RegisterModel Model { get; set; } = new();
+
+	public async Task RegisterUser(EditContext editContext)
+	{
+		_error = null;
+
+		var user = new IdentityUser
+			{
+				Email = Model.Email,
+				UserName = Model.Email
+			};
+		var result = await UserManager.CreateAsync(user, Model.Password);
+		if (!result.Succeeded)
+		{
+			_error = string.Join(',', result.Errors.Select(e => e.Description));
+			await InvokeAsync(StateHasChanged);
+			return;
+		}
+		// ajouter a un role
+		// generation du token de validation
+		var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+		// envoyer le mail de confirmation
+		await UserManager.ConfirmEmailAsync(user, token);
+		NavigationManager.NavigateTo("/");
+	}
+
+	private sealed class RegisterModel
+	{
+		[Required]
+		[EmailAddress]
+		[Display(Name = "Email")]
+		public string Email { get; set; } = "";
+
+		[Required]
+		[DataType(DataType.Password)]
+		[Display(Name = "Mot de passe")]
+		public string Password { get; set; } = "";
+
+		[DataType(DataType.Password)]
+		[Display(Name = "Confirmation")]
+		[Compare("Password", ErrorMessage = "Le mdp et la confirmation ne sont pas identiques")]
+		public string ConfirmPassword { get; set; } = "";
+	}
+}
